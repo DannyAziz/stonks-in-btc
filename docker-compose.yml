@@ -4,20 +4,36 @@ services:
     backend:
         restart: always
         build:
-            context: ./app
+            context: ./backend
             dockerfile: Dockerfile
         working_dir: /app
         command: /bin/bash -c "uvicorn main:app --reload --host 0.0.0.0"
         env_file:
             - ./.dev.env
         volumes:
-            - ./app/:/app/:delegated
+            - ./backend/:/app/:delegated
         expose:
             - 8000
         ports:
             - 8000:8000
         depends_on:
             - postgres
+    
+
+    frontend:
+        restart: always
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile
+        working_dir: /app
+        volumes:
+            - ./frontend/:/app/:delegated
+            - /app/node_modules
+        ports:
+            - 3000:3000
+        depends_on:
+            - backend
+
 
     postgres:
         image: postgres:11.5-alpine
