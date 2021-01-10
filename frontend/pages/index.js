@@ -234,7 +234,7 @@ export default function Home() {
               onChange={setStonk}
             />
           </SelectContainer>
-          in BTC?
+          Stonk in BTC?
         </Title>
       </TitleSection>
       <PriceSection>
