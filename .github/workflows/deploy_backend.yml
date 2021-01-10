@@ -1,0 +1,28 @@
+name: Deploy
+on:
+    push:
+        branches:
+            - main
+
+jobs:
+    deploy_backend:
+        runs-on: ubuntu-latest
+        if: github.event_name == 'push'
+        steps:
+            - uses: actions/checkout@v2
+            - name: copy repo via ssh
+              uses: appleboy/scp-action@master
+              env:
+                  HOST: ${{ secrets.BACKEND_IP }}
+                  USERNAME: ec2-user
+                  KEY: ${{ secrets.BACKEND_KEY }}
+              with:
+                  source: "./, !.private"
+                  target: "/home/ec2-user"
+            - name: executing remote ssh commands using password
+              uses: appleboy/ssh-action@master
+              with:
+                  host: ${{ secrets.BACKEND_IP }}
+                  username: ec2-user
+                  key: ${{ secrets.BACKEND_KEY }}
+                  script: chmod 777 scripts/deploy.sh && ./scripts/deploy.sh
