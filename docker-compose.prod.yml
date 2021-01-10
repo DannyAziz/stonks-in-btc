@@ -1,23 +1,23 @@
 version: "3.3"
 
 services:
-  nginx_letsencrypt:
-    image: linuxserver/letsencrypt
-    container_name: letsencrypt
-    ports:
-        - 80:80
-        - 443:443
-    volumes:
-        - ./config/letsencrypt:/config
-    environment:
-        - EMAIL=hello@dannyaziz.com
-        - URL=api.stonksinbtc.xyz
-        - VALIDATION=http
-        - TZ=Europe/London
-        - PUID=1000
-        - PGID=1000
-    depends_on:
-        - backend
+    nginx_letsencrypt:
+        image: linuxserver/letsencrypt
+        container_name: letsencrypt
+        ports:
+            - 80:80
+            - 443:443
+        volumes:
+            - ./config/letsencrypt:/config
+        environment:
+            - EMAIL=hello@dannyaziz.com
+            - URL=api.stonksinbtc.xyz
+            - VALIDATION=http
+            - TZ=Europe/London
+            - PUID=1000
+            - PGID=1000
+        depends_on:
+            - backend
 
     backend:
         restart: always
