@@ -19,7 +19,7 @@ if (typeof Highcharts === 'object') {
 }
 
 const fetcher = (...args) => fetch(...args).then(res => res.json());
-const API_URL = 'http://localhost:8000'
+const API_URL = process.env.NODE_ENV == 'production' ? 'https://api.stonksinbtc.xyz' : 'http://localhost:8000'
 
 const Container = styled.div`
   background-color: #ECF0F1;
