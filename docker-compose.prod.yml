@@ -1,0 +1,79 @@
+version: "3.3"
+
+services:
+  nginx_letsencrypt:
+    image: linuxserver/letsencrypt
+    container_name: letsencrypt
+    ports:
+        - 80:80
+        - 443:443
+    volumes:
+        - ./config/letsencrypt:/config
+    environment:
+        - EMAIL=hello@dannyaziz.com
+        - URL=api.stonksinbtc.xyz
+        - VALIDATION=http
+        - TZ=Europe/London
+        - PUID=1000
+        - PGID=1000
+    depends_on:
+        - backend
+
+    backend:
+        restart: always
+        build:
+            context: ./backend
+            dockerfile: Dockerfile
+        working_dir: /app
+        command: /bin/bash -c "uvicorn main:app --reload --host 0.0.0.0"
+        env_file:
+            - ./.dev.env
+        volumes:
+            - ./backend/:/app/:delegated
+        expose:
+            - 8000
+        ports:
+            - 8000:8000
+        depends_on:
+            - postgres
+
+    celery_worker:
+        restart: always
+        build:
+            context: ./backend
+            dockerfile: Dockerfile
+        command: /bin/bash -c "celery -A config worker -l info"
+        working_dir: /app
+        env_file:
+            - ./.dev.env
+        volumes:
+            - ./backend/:/app/:delegated
+        depends_on:
+            - postgres
+            - redis_broker
+
+    redis_broker:
+        image: redis:alpine
+        expose:
+            - 6379
+
+    postgres:
+        image: postgres:11.5-alpine
+        volumes:
+            - "postgres:/var/lib/postgresql/data"
+        expose:
+            - 5432
+        env_file:
+            - ./.dev.env
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "pg_isready -U 'priceinbtc' -d priceinbtc",
+                ]
+            timeout: 10s
+            interval: 20s
+            retries: 3
+
+volumes:
+    postgres:
