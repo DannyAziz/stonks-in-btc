@@ -18,7 +18,26 @@ services:
             - 8000:8000
         depends_on:
             - postgres
-    
+
+    celery_worker:
+        restart: always
+        build:
+            context: ./backend
+            dockerfile: Dockerfile
+        command: /bin/bash -c "celery -A config worker -l info"
+        working_dir: /app
+        env_file:
+            - ./.dev.env
+        volumes:
+            - ./backend/:/app/:delegated
+        depends_on:
+            - postgres
+            - redis_broker
+
+    redis_broker:
+        image: redis:alpine
+        expose:
+            - 6379
 
     frontend:
         restart: always
