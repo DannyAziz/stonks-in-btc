@@ -7,6 +7,8 @@ import yfinance as yf
 
 from db import crud, schemas, SessionLocal
 
+from config.celery import celery_app
+
 COINDESK_HEADERS = {
     'authority': 'production.api.coindesk.com',
     'pragma': 'no-cache',
@@ -24,18 +26,18 @@ COINDESK_HEADERS = {
 def convert_usd_to_btc(usd_amount, rate):
     return float(usd_amount )/ float(rate)
 
-def get_historical_stonk_price_in_usd(stonk: yf.Ticker, ticker: str):
+def get_historical_stonk_price_in_usd(stonk: yf.Ticker):
     price_data = stonk.history(start='2013-10-01')
     return price_data
 
-def get_stonk_price_since_date_in_usd(stonk: yf.Ticker, ticker: str, since_date: datetime.datetime):
+def get_stonk_price_since_date_in_usd(stonk: yf.Ticker, since_date: datetime.datetime):
     price_data = stonk.history(start=since_date.strftime('%Y-%m-%d'))
     return price_data
 
 def get_stonk_data(ticker: str):
     stonk = yf.Ticker(ticker)
 
-    historical_daily_prices = get_historical_stonk_price_in_usd(stonk, ticker)
+    historical_daily_prices = get_historical_stonk_price_in_usd(stonk)
 
     return {
         'name': stonk.info['longName'],
@@ -77,7 +79,6 @@ def get_bitcoin_price_on_day(day: datetime.datetime):
     bitcoin_price_dict = pickle.load(open(file_name, 'rb'))
     return bitcoin_price_dict[day]
 
-
 def bootstrap_new_stonk(ticker: str):
     db = SessionLocal()
 
@@ -115,9 +116,41 @@ def bootstrap_new_stonk(ticker: str):
     # Converts all USD prices to BTC
     db.close()
 
+@celery_app.task
 def update_stonk(ticker: str):
-    pass
+    db = SessionLocal()
+    file_name = 'btc_price_dict.pkl'
+    if os.path.isfile(file_name):
+        os.remove(file_name)
+    
+    stonk = yf.Ticker(ticker)
+    stonk_obj = crud.get_stonk_by_ticker(db, ticker)
+    prices = get_stonk_price_since_date_in_usd(stonk, datetime.datetime.now() - datetime.timedelta(days=4))
+    price_in_usd = prices['Close'][len(prices['Close']) - 1]
 
+    price_in_btc = convert_usd_to_btc(
+        price_in_usd,
+        get_current_bitcoin_price()
+    )
+    print(f'Saving Price for {ticker} on {datetime.datetime.now()} @ {str(price_in_btc)}')
+    crud.create_price(
+        db=db,
+        price=schemas.PriceCreate(
+            price=price_in_btc,
+            datetime=datetime.datetime.now(),
+            stonk_id=stonk_obj.id
+        )
+    )
+
+    db.close()
+
+
+@celery_app.task
+def update_stonks():
+    db = SessionLocal()
+    stonks = crud.get_stonks(db)
+    for stonk in stonks:
+        update_stonk.delay(stonk.ticker)
 
 def create_historical_btc_price_file():
     bulk_url = f"https://production.api.coindesk.com/v2/price/values/BTC?start_date=2010-07-17T23:00&end_date={datetime.datetime.now().strftime('%Y-%m-%dT%H:00')}&ohlc=false"
