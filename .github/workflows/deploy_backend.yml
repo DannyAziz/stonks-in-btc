@@ -3,6 +3,9 @@ on:
     push:
         branches:
             - main
+        paths:
+            - "backend"
+            - "docker-compose.prod.yml"
 
 jobs:
     deploy_backend:
