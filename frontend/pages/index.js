@@ -100,7 +100,7 @@ const ChartSelectContainer = styled.div`
 const Footer = styled.footer``;
 
 export default function Home() {
-  const [stonk, setStonk] = useState({value: 11, label: '$TSLA'});
+  const [stonk, setStonk] = useState({value: 1, label: '$TSLA'});
   const [period, setPeriod] = useState({value: '1y', label: '1y'})
   const { data: stonks, error: stonksError } = useSWR(`${API_URL}/stonks`, fetcher)
   const { data: currentPrice , error: currentPriceError } = useSWR(stonk ? `${API_URL}/stonks/${stonk.value}/price` : stonk, fetcher)

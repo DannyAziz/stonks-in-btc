@@ -40,7 +40,7 @@ def get_stonk_data(ticker: str):
     historical_daily_prices = get_historical_stonk_price_in_usd(stonk)
 
     return {
-        'name': stonk.info['longName'],
+        'name': stonk.info['shortName'],
         'historical_daily_prices': historical_daily_prices,
     }
 
